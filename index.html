@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem Absensi PT. Panca Setia Tehnik</title>
+
+<style>
+:root{
+--primary:#1e272e;
+--accent:#0fbcf9;
+--success:#05c46b;
+--danger:#ef5777;
+--gray:#808e9b;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI;}
+body{display:flex;background:#f1f2f6}
+
+/* LOGIN */
+#login{
+position:fixed;width:100%;height:100%;
+background:linear-gradient(135deg,#1e272e,#2f3640);
+display:flex;justify-content:center;align-items:center;
+}
+.box{
+background:#fff;padding:30px;border-radius:15px;width:350px;text-align:center;
+}
+input,select{
+width:100%;padding:10px;margin:10px 0;border-radius:8px;border:1px solid #ddd;
+}
+
+/* SIDEBAR */
+.sidebar{
+width:250px;background:var(--primary);color:#fff;height:100vh;padding:20px;
+}
+.sidebar li{
+list-style:none;padding:12px;margin:10px 0;cursor:pointer;border-radius:8px;
+}
+.sidebar li:hover{background:#34495e}
+
+/* CONTENT */
+.content{margin-left:250px;padding:30px;width:100%}
+.card{
+background:#fff;padding:20px;border-radius:15px;margin-top:20px;text-align:center;
+}
+.btn{
+padding:12px 20px;border:none;border-radius:8px;color:#fff;cursor:pointer;margin:5px;
+}
+.hidden{display:none}
+
+/* TABLE */
+table{width:100%;margin-top:20px;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}
+
+/* MODAL */
+#modal{
+position:fixed;width:100%;height:100%;
+background:rgba(0,0,0,0.7);
+display:none;justify-content:center;align-items:center;
+}
+.modal-box{
+background:#fff;padding:20px;border-radius:10px;width:400px;
+}
+textarea{width:100%;height:80px;margin-top:10px}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+<div class="box">
+<h2>SISTEM ABSENSI</h2>
+
+<input type="text" id="nama" placeholder="Nama">
+
+<select id="divisi" onchange="loadTask()">
+<option value="">Pilih Divisi</option>
+<option value="Teknik">Teknik</option>
+<option value="Admin">Admin</option>
+<option value="IT">IT</option>
+</select>
+
+<select id="task">
+<option value="">Pilih Pekerjaan</option>
+</select>
+
+<button class="btn" style="background:var(--accent)" onclick="login()">Masuk</button>
+</div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<h2>ABSENSI</h2>
+<ul>
+<li onclick="showPage('dashboard')">Dashboard</li>
+<li onclick="showPage('laporan')">Laporan</li>
+<li onclick="location.reload()" style="color:red">Logout</li>
+</ul>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<div id="dashboard">
+<h1>Halo, <span id="user"></span></h1>
+<p>Divisi: <b id="div"></b></p>
+
+<div class="card">
+<h2 id="jam">00:00:00</h2>
+<p id="statusAbsen" style="color:gray;">Status: Belum Absen</p>
+
+<button id="btnMasuk" class="btn" style="background:var(--success)" onclick="absenMasuk()">Absen Masuk</button>
+<button id="btnPulang" class="btn hidden" style="background:var(--danger)" onclick="openModal()">Absen Pulang</button>
+<button class="btn" style="background:orange" onclick="izin()">Izin</button>
+</div>
+</div>
+
+<div id="laporan" class="hidden">
+<h1>Laporan Absensi</h1>
+
+<table>
+<thead>
+<tr>
+<th>Nama</th>
+<th>Divisi</th>
+<th>Status</th>
+<th>Masuk</th>
+<th>Keluar</th>
+<th>Durasi</th>
+<th>Pekerjaan</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody id="data"></tbody>
+</table>
+
+</div>
+
+</div>
+
+<!-- MODAL -->
+<div id="modal">
+<div class="modal-box">
+<h3>Laporan Kerja</h3>
+
+<select id="taskAkhir"></select>
+<textarea id="detail" placeholder="Detail pekerjaan..."></textarea>
+
+<button class="btn" style="background:var(--success)" onclick="absenPulang()">Simpan</button>
+</div>
+</div>
+
+<script>
+
+let userData={};
+let jamMasuk=null;
+
+/* JAM REALTIME */
+setInterval(()=>{
+document.getElementById("jam").innerText=new Date().toLocaleTimeString();
+},1000);
+
+/* TASK PER DIVISI */
+function loadTask(){
+let div=document.getElementById("divisi").value;
+let task=document.getElementById("task");
+
+let data={
+Teknik:["Perbaikan Mesin","Instalasi","Maintenance"],
+Admin:["Input Data","Laporan","Arsip"],
+IT:["Perbaikan Komputer","Jaringan","Server"]
+};
+
+task.innerHTML="<option value=''>Pilih Pekerjaan</option>";
+
+data[div]?.forEach(t=>{
+let opt=document.createElement("option");
+opt.value=t;
+opt.text=t;
+task.add(opt);
+});
+}
+
+/* LOGIN */
+function login(){
+userData.nama=document.getElementById("nama").value;
+userData.divisi=document.getElementById("divisi").value;
+userData.task=document.getElementById("task").value;
+
+if(!userData.nama || !userData.divisi || !userData.task){
+alert("Lengkapi data dulu!");
+return;
+}
+
+document.getElementById("login").style.display="none";
+document.getElementById("user").innerText=userData.nama;
+document.getElementById("div").innerText=userData.divisi;
+
+document.getElementById("taskAkhir").innerHTML=document.getElementById("task").innerHTML;
+}
+
+/* ABSEN MASUK */
+function absenMasuk(){
+if(jamMasuk!==null){
+alert("Sudah absen!");
+return;
+}
+
+jamMasuk=new Date();
+
+document.getElementById("btnMasuk").disabled=true;
+document.getElementById("btnMasuk").innerText="SUDAH ABSEN";
+
+document.getElementById("btnPulang").classList.remove("hidden");
+document.getElementById("statusAbsen").innerText="Status: Sudah Absen Masuk";
+
+alert("Masuk jam "+jamMasuk.toLocaleTimeString());
+}
+
+/* IZIN */
+function izin(){
+let db=JSON.parse(localStorage.getItem("absen"))||[];
+
+db.push({
+nama:userData.nama,
+divisi:userData.divisi,
+status:"Izin",
+masuk:"-",
+keluar:"-",
+durasi:"-",
+pekerjaan:"-",
+detail:"-"
+});
+
+localStorage.setItem("absen",JSON.stringify(db));
+alert("Izin tersimpan!");
+}
+
+/* MODAL */
+function openModal(){
+if(jamMasuk===null){
+alert("Absen masuk dulu!");
+return;
+}
+document.getElementById("modal").style.display="flex";
+}
+
+/* ABSEN PULANG */
+function absenPulang(){
+let keluar=new Date();
+let durasi=Math.floor((keluar-jamMasuk)/60000)+" menit";
+
+let db=JSON.parse(localStorage.getItem("absen"))||[];
+
+db.push({
+nama:userData.nama,
+divisi:userData.divisi,
+status:"Hadir",
+masuk:jamMasuk.toLocaleTimeString(),
+keluar:keluar.toLocaleTimeString(),
+durasi:durasi,
+pekerjaan:document.getElementById("taskAkhir").value,
+detail:document.getElementById("detail").value
+});
+
+localStorage.setItem("absen",JSON.stringify(db));
+
+alert("Data tersimpan!");
+location.reload();
+}
+
+/* LOAD DATA */
+function loadData(){
+let db=JSON.parse(localStorage.getItem("absen"))||[];
+let table=document.getElementById("data");
+table.innerHTML="";
+
+db.forEach(d=>{
+table.innerHTML+=`
+<tr>
+<td>${d.nama}</td>
+<td>${d.divisi}</td>
+<td>${d.status}</td>
+<td>${d.masuk}</td>
+<td>${d.keluar}</td>
+<td>${d.durasi}</td>
+<td>${d.pekerjaan}</td>
+<td>${d.detail}</td>
+</tr>`;
+});
+}
+
+/* NAV */
+function showPage(p){
+document.getElementById("dashboard").classList.add("hidden");
+document.getElementById("laporan").classList.add("hidden");
+document.getElementById(p).classList.remove("hidden");
+
+if(p==="laporan") loadData();
+}
+
+</script>
+
+</body>
+</html>
